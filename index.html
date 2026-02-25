@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Takiwaki様 レッスン進捗ダッシュボード</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Warm Neutrals & Serene Focus -->
+    <!-- Background: #FDFBF7 (Cream) -->
+    <!-- Primary Text: #4A4A4A (Charcoal) -->
+    <!-- Accent 1: #D4A373 (Soft Bronze - for completed) -->
+    <!-- Accent 2: #CCD5AE (Sage Green - for recent growth) -->
+    <!-- Accent 3: #E9EDC9 (Pale Yellow - background highlights) -->
+    <style>
+        body {
+            background-color: #FDFBF7;
+            color: #4A4A4A;
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 300px;
+            max-height: 350px;
+            margin: 0 auto;
+        }
+        .card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: transform 0.2s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+        }
+    </style>
+    <!-- Application Structure Plan: Dashboard Layout
+         1. Header: Welcoming title and summary statement.
+         2. KPI Cards: Immediate view of Purchased vs Completed vs Remaining.
+         3. Acceleration Analysis: A section dedicated to comparing Oct-Dec vs Jan-Feb to highlight the "Amazing Pace Up".
+         4. Journey Visualization: A cumulative line chart showing the trajectory of learning.
+         5. History & Future: A toggleable list of detailed dates and a call to action for the remaining 7.5 lessons.
+         Logic: This structure moves from "Big Picture" -> "Analysis of Effort" -> "Detailed Evidence" -> "Next Steps".
+    -->
+    <!-- Visualization & Content Choices:
+         - Doughnut Chart: To visualize the 42.5/50 completion ratio. Quick, intuitive status check.
+         - Bar Chart: To compare the two time periods (Phase 1 vs Phase 2). Clearly shows density of lessons increasing.
+         - Line Chart: Cumulative lessons over time. The slope will visually demonstrate the "pace up" in February.
+         - Interaction: Tab switching for detailed history, hover effects on charts for specific dates/counts.
+         - NO SVG/Mermaid: All visuals via Chart.js canvas or HTML/CSS.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto space-y-8">
+        
+        <!-- Header Section -->
+        <header class="text-center space-y-2 mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 tracking-tight">Takiwaki様 レッスン進捗レポート</h1>
+            <p class="text-gray-500 text-lg" id="date-range">2024年10月14日 〜 2025年2月25日</p>
+        </header>
+
+        <!-- Intro Text Block -->
+        <section class="bg-white p-6 rounded-xl border-l-4 border-[#D4A373] shadow-sm">
+            <h2 class="text-xl font-bold mb-3 text-gray-800">Takiwakiさんへ：これまでの振り返り</h2>
+            <p class="leading-relaxed text-gray-600">
+                いつもお忙しい中、継続してレッスンをご受講いただき本当にありがとうございます！10月にスタートした全50回のレッスンも、いよいよゴールが見えてきましたね。<br><br>
+                当初は年内完了を目標にしていましたが、こうしてお互い無理なく、でも確実に前進できている今のペースがとても良い形だと思っています。特に年明け、そして<strong class="text-[#D4A373] bg-orange-50 px-1 rounded">2月に入ってからの集中力と驚異的なペースアップ</strong>には本当に驚かされています！<br><br>
+                ここまでの素晴らしい頑張りを実感していただけるよう、これまでの歩みを分かりやすくまとめました。ぜひ一緒に振り返ってみましょう！
+            </p>
+        </section>
+
+        <!-- KPI Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Total -->
+            <div class="card p-6 flex flex-col items-center justify-center text-center">
+                <div class="text-gray-400 text-sm font-medium uppercase tracking-wider mb-1">ご購入レッスン数</div>
+                <div class="text-4xl font-bold text-gray-800"><span id="totalPurchased">50</span><span class="text-lg font-normal text-gray-400">回</span></div>
+            </div>
+            <!-- Completed -->
+            <div class="card p-6 flex flex-col items-center justify-center text-center border-b-4 border-[#CCD5AE]">
+                <div class="text-[#CCD5AE] text-sm font-bold uppercase tracking-wider mb-1">完了済み</div>
+                <div class="text-5xl font-bold text-gray-800"><span id="completedCount">42.5</span><span class="text-lg font-normal text-gray-400">回</span></div>
+                <div class="text-xs text-gray-400 mt-2">達成率 <span id="completionRate">85</span>%</div>
+            </div>
+            <!-- Remaining -->
+            <div class="card p-6 flex flex-col items-center justify-center text-center bg-[#FDFBF7]">
+                <div class="text-gray-500 text-sm font-medium uppercase tracking-wider mb-1">残りレッスン</div>
+                <div class="text-4xl font-bold text-[#D4A373]"><span id="remainingCount">7.5</span><span class="text-lg font-normal text-gray-400">回</span></div>
+                <div class="text-xs text-gray-400 mt-2">ラストスパート！</div>
+            </div>
+        </div>
+
+        <!-- Charts Section: Two Column Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <!-- Comparison Chart -->
+            <div class="card p-6">
+                <div class="mb-4">
+                    <h3 class="text-lg font-bold text-gray-800">期間別ペース比較</h3>
+                    <p class="text-sm text-gray-500">
+                        このセクションでは、学習の前半（年内）と後半（年明け以降）の密度を比較します。
+                        <br>後半、わずか1.5ヶ月で前半2.5ヶ月分と同等のレッスンをこなしており、集中力の高まりがデータに表れています。
+                    </p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+                <div class="mt-4 p-3 bg-[#FAFAFA] rounded text-sm text-center">
+                    <span class="font-bold text-[#CCD5AE]">後半の加速が素晴らしいです！</span>
+                </div>
+            </div>
+
+            <!-- Trajectory Chart -->
+            <div class="card p-6">
+                <div class="mb-4">
+                    <h3 class="text-lg font-bold text-gray-800">累積レッスン数（成長の軌跡）</h3>
+                    <p class="text-sm text-gray-500">
+                        これまでの学習の積み重ねをグラフ化しました。
+                        <br>グラフの傾きが急になっている部分は、集中的に学習された時期を示しています。2月に入ってからの急上昇にご注目ください。
+                    </p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="trajectoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed History Section -->
+        <div class="card p-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800">受講履歴詳細</h3>
+                    <p class="text-sm text-gray-500" id="table-summary-text">全42.5回の詳細な記録です。</p>
+                </div>
+                <div class="flex flex-wrap gap-2" id="filter-buttons">
+                    <button class="filter-btn px-4 py-2 bg-[#D4A373] text-white text-sm rounded-full shadow transition" data-month="all">全て</button>
+                    <button class="filter-btn px-4 py-2 bg-white text-gray-600 border border-gray-200 text-sm rounded-full hover:bg-gray-50 transition" data-month="10">10月</button>
+                    <button class="filter-btn px-4 py-2 bg-white text-gray-600 border border-gray-200 text-sm rounded-full hover:bg-gray-50 transition" data-month="11">11月</button>
+                    <button class="filter-btn px-4 py-2 bg-white text-gray-600 border border-gray-200 text-sm rounded-full hover:bg-gray-50 transition" data-month="12">12月</button>
+                    <button class="filter-btn px-4 py-2 bg-white text-gray-600 border border-gray-200 text-sm rounded-full hover:bg-gray-50 transition" data-month="1">1月</button>
+                    <button class="filter-btn px-4 py-2 bg-white text-gray-600 border border-gray-200 text-sm rounded-full hover:bg-gray-50 transition" data-month="2">2月</button>
+                </div>
+            </div>
+
+            <div class="overflow-hidden rounded-lg border border-gray-100">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="py-3 px-4 text-left font-semibold text-gray-600">No.</th>
+                                <th class="py-3 px-4 text-left font-semibold text-gray-600">日付</th>
+                                <th class="py-3 px-4 text-left font-semibold text-gray-600">カウント</th>
+                                <th class="py-3 px-4 text-left font-semibold text-gray-600">備考</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody" class="divide-y divide-gray-100">
+                            <!-- JS will populate this -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Future Action Plan -->
+        <section class="bg-[#FDFBF7] border-2 border-[#CCD5AE] border-dashed rounded-xl p-8 text-center">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">今後のプラン</h2>
+            <p class="text-gray-600 mb-6 max-w-2xl mx-auto">
+                残り<span class="font-bold text-[#D4A373] text-xl">7.5回</span>です。現在の素晴らしいペースと吸収力を活かし、
+                これまでの復習や、より実践的なトピックに挑戦するのもおすすめです。
+                <br>ご希望の内容があれば、次回のレッスンでお気軽にご相談ください！
+            </p>
+            <button class="bg-[#4A4A4A] text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-gray-700 transition transform hover:-translate-y-1">
+                ラストスパート頑張りましょう！
+            </button>
+        </section>
+
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- Data Definitions ---
+        // Defining the raw data points based on the report
+        // Count 1 for full lesson, 0.5 for half lesson
+        const lessonData = [
+            { id: 1, date: "2024-10-14", count: 1, note: "" },
+            { id: 2, date: "2024-10-18", count: 1, note: "" },
+            { id: 3, date: "2024-10-19", count: 1, note: "" },
+            { id: 4, date: "2024-10-22", count: 1, note: "" },
+            { id: 5, date: "2024-10-23", count: 1, note: "" },
+            { id: 6, date: "2024-10-25", count: 1, note: "" },
+            { id: 7, date: "2024-10-27", count: 1, note: "" },
+            { id: 8, date: "2024-11-05", count: 1, note: "" },
+            { id: 9, date: "2024-11-07", count: 1, note: "" },
+            { id: 10, date: "2024-11-13", count: 1, note: "" },
+            { id: 11, date: "2024-11-18", count: 1, note: "" },
+            { id: 12, date: "2024-11-24", count: 1, note: "" },
+            { id: 13, date: "2024-11-25", count: 1, note: "" },
+            { id: 14, date: "2024-11-26", count: 1, note: "" },
+            { id: 15, date: "2024-11-29", count: 1, note: "" },
+            { id: 16, date: "2024-12-01", count: 1, note: "" },
+            { id: 17, date: "2024-12-02", count: 1, note: "" },
+            { id: 18, date: "2024-12-09", count: 1, note: "" },
+            { id: 19, date: "2024-12-13", count: 1, note: "" },
+            { id: 20, date: "2024-12-14", count: 1, note: "" },
+            { id: 21, date: "2024-12-15", count: 1, note: "" },
+            { id: 22, date: "2024-12-21", count: 0.5, note: "ハーフレッスン" },
+            { id: 23, date: "2025-01-08", count: 1, note: "" },
+            { id: 24, date: "2025-01-18", count: 1, note: "" },
+            { id: 25, date: "2025-01-25", count: 1, note: "" },
+            { id: 26, date: "2025-01-26", count: 1, note: "" },
+            { id: 27, date: "2025-01-28", count: 1, note: "" },
+            { id: 28, date: "2025-01-31", count: 1, note: "" },
+            { id: 29, date: "2025-02-01", count: 1, note: "" },
+            { id: 30, date: "2025-02-03", count: 1, note: "" },
+            { id: 31, date: "2025-02-04", count: 1, note: "" },
+            { id: 32, date: "2025-02-05", count: 1, note: "" },
+            { id: 33, date: "2025-02-07", count: 1, note: "" },
+            { id: 34, date: "2025-02-08", count: 1, note: "" },
+            { id: 35, date: "2025-02-09", count: 1, note: "" },
+            { id: 36, date: "2025-02-10", count: 1, note: "" },
+            { id: 37, date: "2025-02-11", count: 1, note: "" },
+            { id: 38, date: "2025-02-12", count: 1, note: "" },
+            { id: 39, date: "2025-02-13", count: 1, note: "" },
+            { id: 40, date: "2025-02-15", count: 1, note: "" },
+            { id: 41, date: "2025-02-16", count: 1, note: "" },
+            { id: 42, date: "2025-02-18", count: 1, note: "" },
+            { id: 43, date: "2025-02-22", count: 0.5, note: "ハーフレッスン" },
+            { id: 44, date: "2025-02-24", count: 0.5, note: "ハーフレッスン" }
+        ];
+
+        // Total purchased lesson count (update this if the package size changes)
+        const totalPurchasedLessons = 50;
+
+        // Derived metrics based on lessonData
+        const totalCompletedLessons = lessonData.reduce((sum, item) => sum + item.count, 0);
+        const remainingLessons = totalPurchasedLessons - totalCompletedLessons;
+        const completionRate = Math.round((totalCompletedLessons / totalPurchasedLessons) * 100);
+
+        // Format Date Helpers
+        const formatDate = (dateStr) => {
+            const date = new Date(dateStr);
+            return `${date.getMonth() + 1}月${date.getDate()}日`;
+        };
+
+        const formatFullDate = (dateStr) => {
+            const date = new Date(dateStr);
+            return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+        };
+
+        // --- Chart Logic ---
+
+        // 1. Comparison Chart Data Preparation
+        // Phase 1: Oct 14 - Dec 31
+        // Phase 2: Jan 1 - Feb 25
+        const phase1Lessons = lessonData.filter(l => new Date(l.date) < new Date('2025-01-01'));
+        const phase2Lessons = lessonData.filter(l => new Date(l.date) >= new Date('2025-01-01'));
+        
+        const phase1Count = phase1Lessons.reduce((sum, item) => sum + item.count, 0);
+        const phase2Count = phase2Lessons.reduce((sum, item) => sum + item.count, 0);
+
+        const ctxComparison = document.getElementById('comparisonChart').getContext('2d');
+        new Chart(ctxComparison, {
+            type: 'bar',
+            data: {
+                labels: ['前半 (10/14 - 12/31)', '後半 (1/1 - 2/25)'],
+                datasets: [{
+                    label: '完了レッスン数',
+                    data: [phase1Count, phase2Count],
+                    backgroundColor: ['#E5E5E5', '#CCD5AE'], // Gray for past, Green for recent active
+                    borderColor: ['#D1D1D1', '#B3BD95'],
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    barPercentage: 0.6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `完了: ${context.raw}回`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: '回数' }
+                    }
+                }
+            }
+        });
+
+        // 2. Trajectory Chart Data Preparation (Cumulative)
+        let cumulative = 0;
+        const trajectoryData = lessonData.map(item => {
+            cumulative += item.count;
+            return {
+                x: item.date, // Keep ISO for potential sorting if needed
+                y: cumulative,
+                displayDate: formatDate(item.date)
+            };
+        });
+
+        const ctxTrajectory = document.getElementById('trajectoryChart').getContext('2d');
+        new Chart(ctxTrajectory, {
+            type: 'line',
+            data: {
+                labels: trajectoryData.map(d => d.displayDate),
+                datasets: [{
+                    label: '累積完了数',
+                    data: trajectoryData.map(d => d.y),
+                    borderColor: '#D4A373', // Bronze
+                    backgroundColor: 'rgba(212, 163, 115, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#D4A373',
+                    pointRadius: 3,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `累計: ${context.raw}回完了`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            maxTicksLimit: 10, // Avoid overcrowding
+                            autoSkip: true
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        max: 50 // Target line
+                    }
+                }
+            }
+        });
+
+
+        // --- List Interaction Logic ---
+        
+        const tableBody = document.getElementById('historyTableBody');
+        const summaryText = document.getElementById('table-summary-text');
+        const filterBtns = document.querySelectorAll('.filter-btn');
+
+        function renderTable(filterMonth) {
+            tableBody.innerHTML = ''; // Clear
+            
+            let dataToShow = lessonData;
+            let monthCount = 0;
+            
+            // Filter logic
+            if (filterMonth !== 'all') {
+                const monthNum = parseInt(filterMonth);
+                dataToShow = lessonData.filter(l => {
+                    const d = new Date(l.date);
+                    return (d.getMonth() + 1) === monthNum;
+                });
+            }
+
+            // Calculate total count for the selected view
+            monthCount = dataToShow.reduce((sum, item) => sum + item.count, 0);
+
+            // Update Summary Text
+            if (filterMonth === 'all') {
+                summaryText.innerHTML = `全 <span class="font-bold text-[#D4A373]">${monthCount}回</span> の詳細な記録です。`;
+            } else {
+                summaryText.innerHTML = `${filterMonth}月は合計 <span class="font-bold text-[#D4A373]">${monthCount}回</span> のレッスンを受講しました！`;
+            }
+
+            // Update Button Styles
+            filterBtns.forEach(btn => {
+                if (btn.dataset.month === filterMonth) {
+                    btn.className = 'filter-btn px-4 py-2 bg-[#D4A373] text-white text-sm rounded-full shadow transition';
+                } else {
+                    btn.className = 'filter-btn px-4 py-2 bg-white text-gray-600 border border-gray-200 text-sm rounded-full hover:bg-gray-50 transition';
+                }
+            });
+            
+            dataToShow.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.className = index % 2 === 0 ? 'bg-white hover:bg-gray-50' : 'bg-[#FAFAFA] hover:bg-gray-50';
+                
+                // Styling specifically for 0.5 lessons
+                const countBadge = item.count === 0.5 
+                    ? `<span class="inline-block px-2 py-1 text-xs font-semibold text-orange-600 bg-orange-100 rounded-full">0.5回</span>` 
+                    : `<span class="text-gray-600">1.0回</span>`;
+
+                row.innerHTML = `
+                    <td class="py-3 px-4 border-b border-gray-100 text-gray-500">${item.id}</td>
+                    <td class="py-3 px-4 border-b border-gray-100 font-medium">${formatDate(item.date)}</td>
+                    <td class="py-3 px-4 border-b border-gray-100">${countBadge}</td>
+                    <td class="py-3 px-4 border-b border-gray-100 text-gray-400 text-sm">${item.note}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Add Event Listeners to buttons
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                renderTable(btn.dataset.month);
+            });
+        });
+
+        // --- Header & KPI Dynamic Content ---
+
+        // Update header date range based on earliest/latest lesson dates
+        if (lessonData.length > 0) {
+            const sortedByDate = [...lessonData].sort((a, b) => new Date(a.date) - new Date(b.date));
+            const startDate = sortedByDate[0].date;
+            const endDate = sortedByDate[sortedByDate.length - 1].date;
+
+            const dateRangeEl = document.getElementById('date-range');
+            if (dateRangeEl) {
+                dateRangeEl.textContent = `${formatFullDate(startDate)} 〜 ${formatFullDate(endDate)}`;
+            }
+        }
+
+        // Update KPI cards from data
+        const totalPurchasedEl = document.getElementById('totalPurchased');
+        const completedCountEl = document.getElementById('completedCount');
+        const remainingCountEl = document.getElementById('remainingCount');
+        const completionRateEl = document.getElementById('completionRate');
+
+        if (totalPurchasedEl) totalPurchasedEl.textContent = totalPurchasedLessons.toString();
+        if (completedCountEl) completedCountEl.textContent = totalCompletedLessons.toString();
+        if (remainingCountEl) remainingCountEl.textContent = remainingLessons.toString();
+        if (completionRateEl) completionRateEl.textContent = completionRate.toString();
+
+        // Initial Render
+        renderTable('all');
+
+    </script>
+</body>
+</html>
