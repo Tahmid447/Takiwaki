@@ -1,25 +1,38 @@
 ## Takiwaki Lesson Progress Dashboard
 
-This is a simple static dashboard for visualizing lesson progress using plain HTML, Tailwind CSS (from CDN), and Chart.js (from CDN).  
-It is designed to be deployed on Vercel and updated easily via GitHub.
+This repository contains a lesson progress dashboard and a growing teacher/student portal, built for deployment on Vercel.
+
+- The **public dashboard** is implemented as a Next.js app (App Router) under the `app/` directory.
+- A future **teacher portal** lives at `/teacher` and will be wired to Supabase.
 
 ---
 
-### How to view locally
+### 1. Running locally
 
-- Open `index.html` directly in your browser (double-click it or drag it into a browser window).
-- No build step or server is required.
+Install dependencies (one time):
+
+```bash
+npm install
+```
+
+Start the dev server:
+
+```bash
+npm run dev
+```
+
+Then open `http://localhost:3000` in your browser.
 
 ---
 
-### How the data works
+### 2. How the dashboard data works (for now)
 
-All lesson data lives in `index.html` inside the JavaScript block:
+In the Next.js home page `app/page.tsx`:
 
 - The individual lessons are defined in the `lessonData` array:
 
-```js
-const lessonData = [
+```ts
+const lessonData: Lesson[] = [
   { id: 1, date: "2024-10-14", count: 1, note: "" },
   // ...
 ];
@@ -29,7 +42,7 @@ const lessonData = [
 
 - The total purchased lessons are controlled with:
 
-```js
+```ts
 const totalPurchasedLessons = 50;
 ```
 
@@ -49,28 +62,44 @@ Everything else will update automatically on refresh.
 
 ---
 
-### Updating the dashboard (with Git + GitHub)
+### 3. Teacher portal and Supabase (structure)
 
-Typical update flow:
+- `app/teacher/page.tsx` is a placeholder for your secure teacher control panel.
+- `lib/supabaseClient.ts` sets up a Supabase client using environment variables:
 
-1. Edit `index.html` (usually just `lessonData` and `totalPurchasedLessons`).
-2. In your terminal, from this folder:
-
-```bash
-git add index.html
-git commit -m "Update lesson data"
-git push
+```ts
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
 ```
 
-3. Vercel will automatically deploy the new version.
+#### Steps you will take (once ready):
 
-You can also edit `index.html` directly in the GitHub web UI and save; Vercel will redeploy from there as well.
+1. Create a Supabase project.
+2. Copy the project URL and anon key into Vercel environment variables.
+3. Define tables for users, students, and lessons.
+4. Extend the teacher portal page to:
+   - Log in as teacher.
+   - Create/update students.
+   - Record lessons for each student.
+5. Create student pages (e.g. `/student/[id]`) that read from Supabase instead of hard-coded data.
+
+The codebase is prepared for this expansion; the current placeholder pages render safely even before Supabase is configured.
 
 ---
 
-### Deployment on Vercel (summary)
+### 4. Updating and deploying
 
-- This repo is connected to Vercel as a static site.
-- The entrypoint is `index.html` in the repo root.
-- Every push to the main branch triggers a new deployment.
+Typical update flow:
+
+1. Edit files in the `app/` directory (or other source files).
+2. In your terminal, from this folder:
+
+```bash
+git add .
+git commit -m "Describe your change"
+git push
+```
+
+3. Vercel (connected to this GitHub repo) automatically builds and deploys the new version.
+
 
